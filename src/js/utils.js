@@ -14,10 +14,10 @@ export function calcTileType(index, boardSize) {
   if (index > 0 && index < boardSize) {
     return 'top';
   } 
-  if ((index > boardSize) && ((index + 1) % boardSize === 0)) {
+  if ((index + 1) % boardSize === 0) {
     return 'right';
   } 
-  if ((index => boardSize) && ((index + 1) % boardSize === 1)) {
+  if ((index + 1) % boardSize === 1) {
     return 'left';
   } 
   if ((index + 1 > boardSize * boardSize - boardSize) && (index < boardSize * boardSize)) {

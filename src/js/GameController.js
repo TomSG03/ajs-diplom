@@ -11,6 +11,7 @@ export default class GameController {
     // TODO: load saved stated from stateService
 
     this.gamePlay.drawUi(themes.prairie);
+    
   }
 
   onCellClick(index) {
