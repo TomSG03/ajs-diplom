@@ -1,4 +1,5 @@
-import themes from './themes';
+import themes from './Service/themes';
+import Team from './Team';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -11,7 +12,10 @@ export default class GameController {
     // TODO: load saved stated from stateService
 
     this.gamePlay.drawUi(themes.prairie);
-    
+    this.plaerTeam = new Team(['swordsman', 'bowman']);
+    this.compTeam = new Team(['daemon', 'undead', 'vampire']);
+    // console.log([...this.plaerTeam.members, ...this.compTeam.members]);
+    // this.gamePlay.redrawPositions(...this.plaerTeam.position, ...this.compTeam.position);
   }
 
   onCellClick(index) {

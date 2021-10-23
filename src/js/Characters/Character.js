@@ -6,7 +6,9 @@ export default class Character {
     this.health = 50;
     this.type = type;
     // TODO: throw error if user use "new Character()"
-    console.log(new.target.name);
+    if (new.target.name === 'Character') {
+      throw new Error('Нельзя создавать базовый класс напрямую');
+    }
   }
 
   levelUp() {

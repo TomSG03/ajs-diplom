@@ -33,6 +33,8 @@
     "clean-webpack-plugin": "^4.0.0",
     "css-loader": "^3.6.0",
     "eslint": "^8.0.1",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.25.2",
     "html-loader": "^1.3.2",
     "html-webpack-plugin": "^4.5.2",
     "jest": "^27.3.0",
