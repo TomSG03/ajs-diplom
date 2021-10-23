@@ -14,8 +14,14 @@ export default class GameController {
     this.gamePlay.drawUi(themes.prairie);
     this.plaerTeam = new Team(['swordsman', 'bowman']);
     this.compTeam = new Team(['daemon', 'undead', 'vampire']);
-    // console.log([...this.plaerTeam.members, ...this.compTeam.members]);
-    // this.gamePlay.redrawPositions(...this.plaerTeam.position, ...this.compTeam.position);
+
+    console.log(this.plaerTeam.members);
+    console.log(this.compTeam.members);
+
+    console.log(this.plaerTeam.positioned);
+    console.log(this.compTeam.positioned);
+
+    this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
   }
 
   onCellClick(index) {
