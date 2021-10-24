@@ -3,4 +3,5 @@ export default class GameState {
     // TODO: create object
     return null;
   }
+  static indexSelectedMember;
 }

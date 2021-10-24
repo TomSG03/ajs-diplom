@@ -1,7 +1,8 @@
 import themes from './Service/themes';
 import cursors from './Service/cursors';
 import Team from './Team';
-
+import GameState from './GameState';
+import GamePlay from './GamePlay';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -35,6 +36,22 @@ export default class GameController {
   }
 
   onCellClick(index) {
+    const allPositon = [...this.plaerTeam.positioned, ...this.compTeam.positioned];
+    const findMember = allPositon.find((member) => member.position === index);
+    if (findMember !== undefined) {
+      const plaerMember = this.plaerTeam.members.find((member) => findMember.character === member);
+      if (plaerMember !== undefined) {
+        if (GameState.indexSelectedMember !== index) {
+          if (GameState.indexSelectedMember !== undefined) {
+            this.gamePlay.deselectCell(GameState.indexSelectedMember);
+          }
+          this.gamePlay.selectCell(index);
+          GameState.indexSelectedMember = index;
+        }
+      } else {
+        GamePlay.showError('Это чужая команда!!!');
+      }
+    }
   }
 
   onCellEnter(index) {
