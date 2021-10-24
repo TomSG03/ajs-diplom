@@ -1,5 +1,7 @@
 import themes from './Service/themes';
+import cursors from './Service/cursors';
 import Team from './Team';
+
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -22,17 +24,31 @@ export default class GameController {
     console.log(this.compTeam.positioned);
 
     this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
+
+    this.addEventListener();
+  }
+
+  addEventListener() {
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
   }
 
   onCellClick(index) {
-    // TODO: react to click
   }
 
   onCellEnter(index) {
-    // TODO: react to mouse enter
+    const allPositon = [...this.plaerTeam.positioned, ...this.compTeam.positioned];
+    const findMember = allPositon.find((member) => member.position === index);
+    if (findMember !== undefined) {
+      this.gamePlay.setCursor(cursors.pointer);
+      const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${findMember.character.health}`;
+      this.gamePlay.showCellTooltip(message, index);
+    }
   }
 
   onCellLeave(index) {
-    // TODO: react to mouse leave
+    this.gamePlay.hideCellTooltip(index);
+    this.gamePlay.setCursor(cursors.auto);
   }
 }
