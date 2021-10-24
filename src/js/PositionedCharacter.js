@@ -11,6 +11,31 @@ export default class PositionedCharacter {
     }
 
     this.character = character;
-    this.position = position;
+    this._position = position;
+    this.stepRange = [];
+    this.attackRange = [];
+    this.setActionRange();
+  }
+
+  set position(value) {
+    this._position = value;
+    this.setActionRange();
+  }
+
+  get position() {
+    return this._position;
+  }
+
+  setActionRange() {
+    this.setStepRange();
+    this.setAttackRange();
+  }
+
+  setStepRange() {
+
+  }
+
+  setAttackRange() {
+
   }
 }

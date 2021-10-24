@@ -18,12 +18,6 @@ export default class GameController {
     this.plaerTeam = new Team(['swordsman', 'bowman']);
     this.compTeam = new Team(['daemon', 'undead', 'vampire']);
 
-    console.log(this.plaerTeam.members);
-    console.log(this.compTeam.members);
-
-    console.log(this.plaerTeam.positioned);
-    console.log(this.compTeam.positioned);
-
     this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
 
     this.addEventListener();
@@ -47,10 +41,15 @@ export default class GameController {
           }
           this.gamePlay.selectCell(index);
           GameState.indexSelectedMember = index;
+          GameState.selectedMember = findMember;
         }
       } else {
         GamePlay.showError('Это чужая команда!!!');
       }
+    } else if (GameState.selectedMember !== undefined) {
+      GameState.selectedMember.position = index;
+      this.gamePlay.deselectCell(GameState.indexSelectedMember);
+      this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
     }
   }
 
@@ -61,6 +60,9 @@ export default class GameController {
       this.gamePlay.setCursor(cursors.pointer);
       const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${findMember.character.health}`;
       this.gamePlay.showCellTooltip(message, index);
+    }
+    if (GameState.selectedMember !== undefined) {
+      this.gamePlay.showCellTooltip(index, index);
     }
   }
 

@@ -53,7 +53,7 @@ export default class Team {
   init() {
     this.members = generateTeam(this.allowedTypes, 1, 2);
     this.startLine = this.whoIsIt === 'player' ? plaerStartLine : compStartLine;
-    this.position = this.generateStartPosition(2);
+    this.generateStartPosition(2);
   }
 
   generateStartPosition(memberCount) {
