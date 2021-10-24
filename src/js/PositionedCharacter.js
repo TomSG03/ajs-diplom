@@ -14,28 +14,39 @@ export default class PositionedCharacter {
     this._position = position;
     this.stepRange = [];
     this.attackRange = [];
-    this.setActionRange();
+    this.setActionRange(this.stepRange, this.character.stepRadius);
+    this.setActionRange(this.attackRange, this.character.attackRadius);
+    console.log(this.stepRange);
   }
 
   set position(value) {
     this._position = value;
-    this.setActionRange();
+    this.stepRange = this.setActionRange(this.character.stepRadius);
+    this.attackRange = this.setActionRange(this.character.attackRadius);
   }
 
   get position() {
     return this._position;
   }
 
-  setActionRange() {
-    this.setStepRange();
-    this.setAttackRange();
-  }
+  setActionRange(radius) {
+    const arr = [];
+    const center = this._position;
+    const stepLine = 8;
+    const posInLine = center % stepLine;
+    for (let i = 1; i < radius + 1; i += 1) {
+      const up = center - stepLine * i;
+      const left = center + i;
+      const right = center - i;
+      const down = center + stepLine * i;
 
-  setStepRange() {
-
-  }
-
-  setAttackRange() {
-
+      if (up >= 0) {
+        arr.push(up);
+      }
+      if (left >= 0 && left % stepLine < posInLine) {
+        arr.push(up);
+      }
+    }
+    return arr;
   }
 }
