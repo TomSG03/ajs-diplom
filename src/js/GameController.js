@@ -14,6 +14,9 @@ export default class GameController {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
 
+    // Отключение контекстного меню в браузере
+    document.addEventListener('contextmenu', (event) => event.preventDefault());
+
     this.gamePlay.drawUi(themes.prairie);
     this.plaerTeam = new Team(['swordsman', 'bowman']);
     this.compTeam = new Team(['daemon', 'undead', 'vampire']);
@@ -47,9 +50,15 @@ export default class GameController {
         GamePlay.showError('Это чужая команда!!!');
       }
     } else if (GameState.selectedMember !== undefined) {
-      GameState.selectedMember.position = index;
-      this.gamePlay.deselectCell(GameState.indexSelectedMember);
-      this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
+      if (GameState.selectedMember.stepRange.includes(index)) {
+        GameState.selectedMember.position = index;
+        this.gamePlay.deselectCell(GameState.indexSelectedMember);
+        this.gamePlay.deselectCell(index);
+        this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
+        GameState.selectedMember = undefined;
+      } else {
+        alert('Не получится!!!');
+      }
     }
   }
 
@@ -60,14 +69,34 @@ export default class GameController {
       this.gamePlay.setCursor(cursors.pointer);
       const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${findMember.character.health}`;
       this.gamePlay.showCellTooltip(message, index);
+    } else if (GameState.selectedMember !== undefined) {
+      if (GameState.selectedMember.stepRange.includes(index)) {
+        this.gamePlay.setCursor(cursors.pointer);
+        this.gamePlay.selectCell(index, 'green');
+        if (this.checkEnemy(index)) {
+          this.gamePlay.selectCell(index, 'red');
+          this.gamePlay.setCursor(cursors.crosshair);
+        }
+      } else {
+        this.gamePlay.setCursor(cursors.notallowed);
+      }
     }
-    if (GameState.selectedMember !== undefined) {
-      this.gamePlay.showCellTooltip(index, index);
+  }
+
+  checkEnemy(index) {
+    for (let i = 0; i < this.compTeam.positioned.length; i += 1) {
+      if (index === this.compTeam.positioned[i].position) {
+        return true;
+      }
     }
+    return false;
   }
 
   onCellLeave(index) {
     this.gamePlay.hideCellTooltip(index);
     this.gamePlay.setCursor(cursors.auto);
+    if (GameState.indexSelectedMember !== index) {
+      this.gamePlay.deselectCell(index);
+    }
   }
 }

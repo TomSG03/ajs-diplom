@@ -14,8 +14,8 @@ export default class PositionedCharacter {
     this._position = position;
     this.stepRange = [];
     this.attackRange = [];
-    this.setActionRange(this.stepRange, this.character.stepRadius);
-    this.setActionRange(this.attackRange, this.character.attackRadius);
+    this.stepRange = this.setActionRange(this.character.stepRadius);
+    this.attackRange = this.setActionRange(this.character.attackRadius);
     console.log(this.stepRange);
   }
 
@@ -31,20 +31,39 @@ export default class PositionedCharacter {
 
   setActionRange(radius) {
     const arr = [];
-    const center = this._position;
+    const pos = this._position;
     const stepLine = 8;
-    const posInLine = center % stepLine;
+    const row = Math.trunc(pos / stepLine);
+    const col = pos % stepLine;
     for (let i = 1; i < radius + 1; i += 1) {
-      const up = center - stepLine * i;
-      const left = center + i;
-      const right = center - i;
-      const down = center + stepLine * i;
+      const up = row - i;
+      const left = col - i;
+      const right = col + i;
+      const down = row + i;
 
       if (up >= 0) {
-        arr.push(up);
+        arr.push(pos - stepLine * i);
       }
-      if (left >= 0 && left % stepLine < posInLine) {
-        arr.push(up);
+      if (left >= 0) {
+        arr.push(pos - i);
+      }
+      if (right < stepLine) {
+        arr.push(pos + i);
+      }
+      if (down < stepLine) {
+        arr.push(pos + stepLine * i);
+      }
+      if (up >= 0 && left >= 0) {
+        arr.push(pos - stepLine * i - i);
+      }
+      if (up >= 0 && right < stepLine) {
+        arr.push(pos - stepLine * i + i);
+      }
+      if (down < stepLine && left >= 0) {
+        arr.push(pos + stepLine * i - i);
+      }
+      if (down < stepLine && right < stepLine) {
+        arr.push(pos + stepLine * i + i);
       }
     }
     return arr;
