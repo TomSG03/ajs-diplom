@@ -1,16 +1,14 @@
 import themes from './Service/themes';
 import cursors from './Service/cursors';
 import Team from './Team';
-// import GameState from './GameState';
-import GamePlay from './GamePlay';
+import GameState from './GameState';
+// import GameStateService from './GameStateService';
+// import GamePlay from './GamePlay';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
     this.gamePlay = gamePlay;
     this.stateService = stateService;
-    this.status = '';
-    this.selectedMember = undefined;
-    this.indexSelectedMember = undefined;
   }
 
   init() {
@@ -18,13 +16,25 @@ export default class GameController {
     // TODO: load saved stated from stateService
 
     // Отключение контекстного меню в браузере
-    document.addEventListener('contextmenu', (event) => event.preventDefault());
+    // document.addEventListener('contextmenu', (event) => event.preventDefault());
 
     this.gamePlay.drawUi(themes.prairie);
-    this.plaerTeam = new Team(['swordsman', 'bowman']);
-    this.enemyTeam = new Team(['daemon', 'undead', 'vampire']);
 
-    this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.enemyTeam.positioned]);
+    this.playerTeam = new Team(['swordsman', 'bowman']);
+    this.playerTeam.whoIsIt = 'player';
+    this.playerTeam.init();
+
+    this.enemyTeam = new Team(['daemon', 'undead', 'vampire']);
+    this.enemyTeam.whoIsIt = 'enemy';
+    this.enemyTeam.init();
+
+    this.gamePlay.redrawPositions([...this.playerTeam.positioned, ...this.enemyTeam.positioned]);
+
+    this.state = new GameState(this.playerTeam.positioned, this.enemyTeam.positioned);
+
+    this.status = '';
+    this.selectedMember = undefined;
+    this.indexSelectedMember = undefined;
 
     this.addEventListener();
   }
@@ -33,6 +43,40 @@ export default class GameController {
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addNewGameListener(this.onNewGame.bind(this));
+    this.gamePlay.addLoadGameListener(this.onLoadGame.bind(this));
+    this.gamePlay.addSaveGameListener(this.onSaveGame.bind(this));
+  }
+
+  onNewGame() {
+    this.gamePlay.cellClickListeners = [];
+    this.gamePlay.cellEnterListeners = [];
+    this.gamePlay.cellLeaveListeners = [];
+    this.gamePlay.newGameListeners = [];
+    this.gamePlay.saveGameListeners = [];
+    this.gamePlay.loadGameListeners = [];
+    this.status = '';
+    this.selectedMember = undefined;
+    this.indexSelectedMember = undefined;
+
+    delete this.playerTeam;
+    delete this.enemyTeam;
+
+    this.init();
+  }
+
+  onLoadGame() {
+    const state = this.stateService.load();
+    console.log(state.playerTeam);
+    console.log(state.enemyTeam);
+  }
+
+  onSaveGame() {
+    this.state.playerTeam = this.playerTeam.positioned;
+    this.state.enemyTeam = this.enemyTeam.positioned;
+    // this.state.selectedMember = this.selectedMember;
+    // this.state.indexSelectedMember = this.indexSelectedMember;
+    this.stateService.save(this.state);
   }
 
   onCellClick(index) {
@@ -43,14 +87,16 @@ export default class GameController {
         }
         this.gamePlay.selectCell(index);
         this.indexSelectedMember = index;
-        this.selectedMember = this.plaerTeam.positioned.find((member) => member.position === index);
+        this.selectedMember = this.playerTeam.positioned.find(
+          (member) => member.position === index,
+        );
         this.status = '';
         break;
       case 'move':
         this.selectedMember.position = index;
         this.gamePlay.deselectCell(this.indexSelectedMember);
         this.gamePlay.deselectCell(index);
-        this.gamePlay.redrawPositions([...this.plaerTeam.positioned,
+        this.gamePlay.redrawPositions([...this.playerTeam.positioned,
           ...this.enemyTeam.positioned]);
         this.selectedMember = undefined;
         this.status = '';
@@ -94,9 +140,7 @@ export default class GameController {
   }
 
   getCellStatus(index) {
-    const rezult = {};
-
-    const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
+    const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     const findMember = allPositon.find((member) => member.position === index);
 
     if (findMember !== undefined) {
@@ -104,49 +148,40 @@ export default class GameController {
       this.gamePlay.showCellTooltip(message, index);
     }
     if (this.checkMy(index)) {
-      rezult.cursor = cursors.auto;
-      rezult.color = 'green';
       this.status = 'select';
+      return { cursor: cursors.auto, color: 'green' };
     }
     if (this.checkEnemy(index)) {
-      rezult.cursor = cursors.auto;
-      rezult.color = 'red';
       this.status = 'enemy';
+      return { cursor: cursors.auto, color: 'red' };
     }
 
-    return rezult;
+    return {};
   }
 
   getCellAction(index) {
-    const rezult = {};
-
     if (this.checkMy(index)) {
-      rezult.cursor = cursors.auto;
-      rezult.color = 'yellow';
       this.status = 'select';
+      return { cursor: cursors.auto, color: 'yellow' };
     }
-    if (this.selectedMember.stepRange.includes(index)) {
-      rezult.cursor = cursors.pointer;
-      rezult.color = 'green';
+    if (this.selectedMember.stepRange.includes(index) && !this.checkEnemy(index)) {
       this.status = 'move';
+      return { cursor: cursors.pointer, color: 'green' };
     }
     if (this.checkEnemy(index) && this.selectedMember.attackRange.includes(index)) {
-      rezult.cursor = cursors.crosshair;
-      rezult.color = 'red';
       this.status = 'attack';
+      return { cursor: cursors.crosshair, color: 'red' };
     }
     if (!this.selectedMember.stepRange.includes(index) && !this.checkMy(index)) {
-      rezult.cursor = cursors.notallowed;
-      delete rezult.color;
       this.status = 'ban';
+      return { cursor: cursors.notallowed };
     }
     if (this.checkEnemy(index) && !this.selectedMember.attackRange.includes(index)) {
-      rezult.cursor = cursors.notallowed;
-      delete rezult.color;
       this.status = 'ban-attack';
+      return { cursor: cursors.notallowed };
     }
 
-    return rezult;
+    return {};
   }
 
   setCell(index, action) {
@@ -166,8 +201,8 @@ export default class GameController {
   }
 
   checkMy(index) {
-    for (let i = 0; i < this.plaerTeam.positioned.length; i += 1) {
-      if (index === this.plaerTeam.positioned[i].position) {
+    for (let i = 0; i < this.playerTeam.positioned.length; i += 1) {
+      if (index === this.playerTeam.positioned[i].position) {
         return true;
       }
     }
@@ -190,7 +225,7 @@ export default class GameController {
 
   attack(index, attackIndex) {
     return new Promise((resolve) => {
-      const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
+      const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
       const hanter = allPositon.find((member) => member.position === index);
       const death = allPositon.find((member) => member.position === attackIndex);
       const damage = Math.max(hanter.character.attack - death.character.defence,
@@ -212,7 +247,7 @@ export default class GameController {
   }
 
   nextTurn(indexAttack) {
-    const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
+    const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
   }
 }
