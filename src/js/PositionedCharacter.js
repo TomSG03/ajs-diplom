@@ -11,27 +11,26 @@ export default class PositionedCharacter {
     }
 
     this.character = character;
-    this._position = position;
+    this.l_position = position;
     this.stepRange = [];
     this.attackRange = [];
     this.stepRange = this.setActionRange(this.character.stepRadius);
     this.attackRange = this.setActionRange(this.character.attackRadius);
-    console.log(this.stepRange);
   }
 
   set position(value) {
-    this._position = value;
+    this.l_position = value;
     this.stepRange = this.setActionRange(this.character.stepRadius);
     this.attackRange = this.setActionRange(this.character.attackRadius);
   }
 
   get position() {
-    return this._position;
+    return this.l_position;
   }
 
   setActionRange(radius) {
     const arr = [];
-    const pos = this._position;
+    const pos = this.l_position;
     const stepLine = 8;
     const row = Math.trunc(pos / stepLine);
     const col = pos % stepLine;
