@@ -34,6 +34,7 @@ export default class PositionedCharacter {
     const stepLine = 8;
     const row = Math.trunc(pos / stepLine);
     const col = pos % stepLine;
+
     for (let i = 1; i < radius + 1; i += 1) {
       const up = row - i;
       const left = col - i;

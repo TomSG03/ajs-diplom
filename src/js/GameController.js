@@ -22,9 +22,9 @@ export default class GameController {
 
     this.gamePlay.drawUi(themes.prairie);
     this.plaerTeam = new Team(['swordsman', 'bowman']);
-    this.compTeam = new Team(['daemon', 'undead', 'vampire']);
+    this.enemyTeam = new Team(['daemon', 'undead', 'vampire']);
 
-    this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.compTeam.positioned]);
+    this.gamePlay.redrawPositions([...this.plaerTeam.positioned, ...this.enemyTeam.positioned]);
 
     this.addEventListener();
   }
@@ -51,7 +51,7 @@ export default class GameController {
         this.gamePlay.deselectCell(this.indexSelectedMember);
         this.gamePlay.deselectCell(index);
         this.gamePlay.redrawPositions([...this.plaerTeam.positioned,
-          ...this.compTeam.positioned]);
+          ...this.enemyTeam.positioned]);
         this.selectedMember = undefined;
         this.status = '';
         this.onCellEnter(index);
@@ -69,8 +69,9 @@ export default class GameController {
         this.status = '';
         break;
       case 'attack':
-        alert('Атака!!!');
+        console.log(`Атака !!! с ${this.indexSelectedMember} на ${index}`);
         this.status = '';
+        this.getAttack(this.indexSelectedMember, index);
         break;
 
       default:
@@ -95,7 +96,7 @@ export default class GameController {
   getCellStatus(index) {
     const rezult = {};
 
-    const allPositon = [...this.plaerTeam.positioned, ...this.compTeam.positioned];
+    const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
     const findMember = allPositon.find((member) => member.position === index);
 
     if (findMember !== undefined) {
@@ -119,15 +120,15 @@ export default class GameController {
   getCellAction(index) {
     const rezult = {};
 
-    if (this.selectedMember.stepRange.includes(index)) {
-      rezult.cursor = cursors.pointer;
-      rezult.color = 'green';
-      this.status = 'move';
-    }
     if (this.checkMy(index)) {
       rezult.cursor = cursors.auto;
       rezult.color = 'yellow';
       this.status = 'select';
+    }
+    if (this.selectedMember.stepRange.includes(index)) {
+      rezult.cursor = cursors.pointer;
+      rezult.color = 'green';
+      this.status = 'move';
     }
     if (this.checkEnemy(index) && this.selectedMember.attackRange.includes(index)) {
       rezult.cursor = cursors.crosshair;
@@ -156,8 +157,8 @@ export default class GameController {
   }
 
   checkEnemy(index) {
-    for (let i = 0; i < this.compTeam.positioned.length; i += 1) {
-      if (index === this.compTeam.positioned[i].position) {
+    for (let i = 0; i < this.enemyTeam.positioned.length; i += 1) {
+      if (index === this.enemyTeam.positioned[i].position) {
         return true;
       }
     }
@@ -180,5 +181,38 @@ export default class GameController {
       this.gamePlay.deselectCell(index);
     }
     this.status = '';
+  }
+
+  getAttack(indexMember, indexAttack) {
+    const promise = this.attack(indexMember, indexAttack);
+    promise.then(() => this.nextTurn(indexAttack));
+  }
+
+  attack(index, attackIndex) {
+    return new Promise((resolve) => {
+      const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
+      const hanter = allPositon.find((member) => member.position === index);
+      const death = allPositon.find((member) => member.position === attackIndex);
+      const damage = Math.max(hanter.character.attack - death.character.defence,
+        hanter.character.attack * 0.1);
+
+      const promise = this.gamePlay.showDamage(attackIndex, damage);
+      promise.then(() => {
+        death.character.health -= damage;
+        if (death.character.health <= 0) {
+          if (this.enemyTeam.positioned.includes(death)) {
+            this.enemyTeam.positioned.splice(this.enemyTeam.positioned.indexOf(death), 1);
+          } else {
+            this.playerTeam.positioned.splice(this.playerTeam.positioned.indexOf(hanter), 1);
+          }
+        }
+        resolve();
+      });
+    });
+  }
+
+  nextTurn(indexAttack) {
+    const allPositon = [...this.plaerTeam.positioned, ...this.enemyTeam.positioned];
+    this.gamePlay.redrawPositions(allPositon);
   }
 }
