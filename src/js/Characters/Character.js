@@ -16,9 +16,10 @@ export default class Character {
       throw new Error('нельзя повысить левел умершего');
     } else {
       this.level += 1;
-      this.health = 100;
-      this.attack += (this.attack / 100) * 20;
-      this.defence += (this.defence / 100) * 20;
+      this.attack = Math.round(Math.max(this.attack, this.attack * ((80 + this.health) / 100)));
+      this.defence = Math.round(Math.max(this.defence, this.defence * ((80 + this.health) / 100)));
+      this.health += 80;
+      this.health = this.health > 100 ? 100 : this.health;
     }
   }
 }

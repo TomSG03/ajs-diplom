@@ -1,5 +1,9 @@
 export default class GameState {
-  constructor(playerTeam, enemyTeam) {
+  constructor(toGo, level, scope, scopeMax, playerTeam, enemyTeam) {
+    this.toGo = toGo;
+    this.level = level;
+    this.scope = scope;
+    this.scopeMax = scopeMax;
     this.playerTeam = playerTeam;
     this.enemyTeam = enemyTeam;
   }

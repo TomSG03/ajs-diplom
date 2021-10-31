@@ -35,6 +35,11 @@ export default class GamePlay {
         <button data-id="action-save" class="btn">Save Game</button>
         <button data-id="action-load" class="btn">Load Game</button>
       </div>
+      <div class="controls">
+        <span data-id="level" class="btn">Level: 1</span>
+        <span data-id="score" class="btn">Score: 0</span>
+        <span data-id="scorteMax" class="btn">Best score: 0</span>
+      </div>
       <div class="board-container">
         <div data-id="board" class="board"></div>
       </div>
@@ -43,6 +48,10 @@ export default class GamePlay {
     this.newGameEl = this.container.querySelector('[data-id=action-restart]');
     this.saveGameEl = this.container.querySelector('[data-id=action-save]');
     this.loadGameEl = this.container.querySelector('[data-id=action-load]');
+
+    this.level = this.container.querySelector('[data-id=level]');
+    this.score = this.container.querySelector('[data-id=score]');
+    this.scoreMax = this.container.querySelector('[data-id=scorteMax]');
 
     this.newGameEl.addEventListener('click', (event) => this.onNewGameClick(event));
     this.saveGameEl.addEventListener('click', (event) => this.onSaveGameClick(event));
