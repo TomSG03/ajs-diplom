@@ -57,9 +57,7 @@ export default class GameController {
   }
 
   onNewGame() {
-    this.gamePlay.cellClickListeners = [];
-    this.gamePlay.cellEnterListeners = [];
-    this.gamePlay.cellLeaveListeners = [];
+    this.disableBoard();
     this.gamePlay.newGameListeners = [];
     this.gamePlay.saveGameListeners = [];
     this.gamePlay.loadGameListeners = [];
@@ -77,17 +75,27 @@ export default class GameController {
   }
 
   onLoadGame() {
-    const state = this.stateService.load();
-    console.log(state.playerTeam);
-    console.log(state.enemyTeam);
+    try {
+      this.state.from(this.stateService.load());
+    } catch (e) {
+      GamePlay.showError(e.message);
+    }
+
+    this.playerTeam.positioned = this.state.playerTeam;
+    this.enemyTeam.positioned = this.state.enemyTeam;
+
+    this.gamePlay.drawUi(themes[this.state.level - 1]);
+    this.gamePlay.redrawPositions([...this.playerTeam.positioned, ...this.enemyTeam.positioned]);
+    this.gamePlay.upScore(`Score: ${this.state.score}`);
+    this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
+    this.gamePlay.upLevel(`Level: ${this.state.level}`);
   }
 
   onSaveGame() {
     this.state.playerTeam = this.playerTeam.positioned;
     this.state.enemyTeam = this.enemyTeam.positioned;
-    // this.state.selectedMember = this.selectedMember;
-    // this.state.indexSelectedMember = this.indexSelectedMember;
     this.stateService.save(this.state);
+    GamePlay.showMessage('Игра сохранена!');
   }
 
   // при клике на ячейку совершается действие
@@ -142,6 +150,7 @@ export default class GameController {
   }
 
   onCellEnter(index) {
+    this.gamePlay.showCellTooltip(index, index);
     if (this.selectedMember !== undefined) {
       const cellAction = this.getCellAction(index);
       if (this.status !== '') {
@@ -280,7 +289,7 @@ export default class GameController {
 
     if (this.playerTeam.positioned.length === 0) {
       GamePlay.showMessage('Вы проиграли!!');
-      this.onNewGame();
+      this.disableBoard();
     }
     if (this.enemyTeam.positioned.length === 0) {
       if (this.state.level === 4) {
@@ -303,6 +312,10 @@ export default class GameController {
     if (this.state.score > this.state.scoreMax) {
       this.state.scoreMax = this.state.score;
     }
+    this.disableBoard();
+  }
+
+  disableBoard() {
     this.gamePlay.cellClickListeners = [];
     this.gamePlay.cellEnterListeners = [];
     this.gamePlay.cellLeaveListeners = [];
@@ -355,25 +368,34 @@ export default class GameController {
         this.getAttack(this.indexSelectedMember, indexAttack);
       }
     }
-    // else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
-    //   memAttack = this.attackRange();
-    //   if (memAttack.member) {
-    //     this.selectedMember = memAttack.member;
-    //     this.indexSelectedMember = memAttack.index;
-    //     // this.state.toGo = true;
-    //     this.getAttack(this.indexSelectedMember, memAttack.indexAttack);
-    //   } else { // ищем у какого персонажа есть в диапазоне шага персонаж игрока
-    //     const memStep = this.stepRange();
-    //     if (memStep.index >= 0) {
-    //       this.selectedMember = this.enemyTeam.positioned[memStep.index];
-    //       this.moveEnemy(this.findPos());
-    //       // this.state.toGo = true;
-    //     } else {
-    //       console.log('Нужнo искать противника');
-    //     }
-    //   }
-    // }
+    else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
+      const attackRange = this.attackRange();
+      if (attackRange.member !== undefined) {
+        this.selectedMember = attackRange.member;
+        this.indexSelectedMember = attackRange.index;
+        // this.state.toGo = true;
+        this.getAttack(this.indexSelectedMember, attackRange.indexAttack);
+      } else console.log('Нужнo искать противника');
+      // { // ищем у какого персонажа есть в диапазоне шага персонаж игрока
+      //   const stepRange = this.stepRange();
+      //   if (stepRange.index >= 0) {
+      //     this.selectedMember = this.enemyTeam.positioned[stepRange.index];
+      //     console.log(`${this.enemyTeam.positioned[stepRange.index].character.type} - ${this.enemyTeam.positioned[stepRange.index].position} видит игрока на ${stepRange.indexAttack}`);
+      //     const indexAttack = this.selectCell(stepRange.indexAttack, this.enemyTeam.positioned[stepRange.index].attackRange);
+      //     // this.moveEnemy(this.findPos());
+      //     // this.state.toGo = true;
+      //   } else 
+      //   {
+      //     console.log('Нужнo искать противника');
+      //   }
+      // }
+    }
   }
+
+  // selectCell(index, arrCell) {
+  // //  const arr = 
+
+  // }
 
   // Поиск среди всех персонажей противника у которых в диапазоне шага есть персонажи игрока
   stepRange() {
@@ -382,7 +404,7 @@ export default class GameController {
       for (let n = 0; n < this.playerTeam.positioned.length; n += 1) {
         const indexAttack = this.playerTeam.positioned[n].position;
         if (member.stepRange.includes(indexAttack)) {
-          return { index };
+          return { index, indexAttack };
         }
       }
     }
