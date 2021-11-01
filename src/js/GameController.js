@@ -3,9 +3,6 @@ import cursors from './Service/cursors';
 import Team, { plaerStartLine, enemyStartLine } from './Team';
 import GameState from './GameState';
 import GamePlay from './GamePlay';
-// import { find } from 'core-js/core/array';
-// import GameStateService from './GameStateService';
-// import GamePlay from './GamePlay';
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -150,7 +147,14 @@ export default class GameController {
   }
 
   onCellEnter(index) {
-    this.gamePlay.showCellTooltip(index, index);
+    const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
+    const findMember = allPositon.find((member) => member.position === index);
+
+    if (findMember !== undefined) {
+      const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${(findMember.character.health).toFixed()}`;
+      this.gamePlay.showCellTooltip(message, index);
+    }
+    // this.gamePlay.showCellTooltip(index, index);
     if (this.selectedMember !== undefined) {
       const cellAction = this.getCellAction(index);
       if (this.status !== '') {
@@ -164,15 +168,8 @@ export default class GameController {
     }
   }
 
-  // выбираем возможные действия если на поле еще никто не выбран
+  // выбираем возможные действия если на поле. Еще никто не выбран
   getCellStatus(index) {
-    const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
-    const findMember = allPositon.find((member) => member.position === index);
-
-    if (findMember !== undefined) {
-      const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${findMember.character.health}`;
-      this.gamePlay.showCellTooltip(message, index);
-    }
     if (this.checkPlayer(index)) {
       this.status = 'select';
       return { cursor: cursors.auto, color: 'green' };
@@ -276,7 +273,7 @@ export default class GameController {
     });
   }
 
-  nextTurn(index) {
+  nextTurn(index = 0) {
     this.state.step += 1;
     this.gamePlay.upSteps(`Steps: ${this.state.step}`);
 
@@ -364,57 +361,19 @@ export default class GameController {
       this.indexSelectedMember = index;
       const indexAttack = this.findPlayerTeam();
       if (indexAttack !== undefined) {
-        // this.state.toGo = true;
         this.getAttack(this.indexSelectedMember, indexAttack);
       }
-    }
-    else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
+    } else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
       const attackRange = this.attackRange();
-      if (attackRange.member !== undefined) {
+      if (attackRange.member !== undefined) { // если нашелся, то атакуем
         this.selectedMember = attackRange.member;
         this.indexSelectedMember = attackRange.index;
-        // this.state.toGo = true;
         this.getAttack(this.indexSelectedMember, attackRange.indexAttack);
-      } else console.log('Нужнo искать противника');
-      // { // ищем у какого персонажа есть в диапазоне шага персонаж игрока
-      //   const stepRange = this.stepRange();
-      //   if (stepRange.index >= 0) {
-      //     this.selectedMember = this.enemyTeam.positioned[stepRange.index];
-      //     console.log(`${this.enemyTeam.positioned[stepRange.index].character.type} - ${this.enemyTeam.positioned[stepRange.index].position} видит игрока на ${stepRange.indexAttack}`);
-      //     const indexAttack = this.selectCell(stepRange.indexAttack, this.enemyTeam.positioned[stepRange.index].attackRange);
-      //     // this.moveEnemy(this.findPos());
-      //     // this.state.toGo = true;
-      //   } else 
-      //   {
-      //     console.log('Нужнo искать противника');
-      //   }
-      // }
-    }
-  }
-
-  // selectCell(index, arrCell) {
-  // //  const arr = 
-
-  // }
-
-  // Поиск среди всех персонажей противника у которых в диапазоне шага есть персонажи игрока
-  stepRange() {
-    for (let index = 0; index < this.enemyTeam.positioned.length; index += 1) {
-      const member = this.enemyTeam.positioned[index];
-      for (let n = 0; n < this.playerTeam.positioned.length; n += 1) {
-        const indexAttack = this.playerTeam.positioned[n].position;
-        if (member.stepRange.includes(indexAttack)) {
-          return { index, indexAttack };
-        }
+      } else { // если не кого атаковать делаем шаг
+        this.step(this.playerTeam.positioned);
+        this.nextTurn();
       }
     }
-    return {};
-  }
-
-  findPos() {
-  //   for (let index = 0; index < 8; index += 1) {
-  //     const element = array[index];
-  //   }
   }
 
   // Поиск среди всех персонажей противника у которых в диапазоне атаки есть персонажи игрока
@@ -442,10 +401,78 @@ export default class GameController {
     return undefined;
   }
 
-  // перемещение персонажа противника
-  moveEnemy(newIndex) {
-    this.selectedMember.position = newIndex;
-    this.gamePlay.redrawPositions([...this.playerTeam.positioned,
-      ...this.enemyTeam.positioned]);
+  step(playerPositioned) {
+    const boardSize = 8;
+    const distances = [];
+
+    // array of possible steps for all chars in enemy team
+    this.enemyTeam.positioned.forEach((member) => {
+      playerPositioned.forEach((character) => {
+        distances.push({
+          member,
+          targetIndex: character.position,
+          distance: GameController.calcSteps(member, character, boardSize),
+        });
+      });
+    });
+
+    // sort by shortest distance or by attack power if distance is equal
+    distances.sort((a, b) => {
+      if (a.distance < b.distance) return -1;
+      if (a.distance > b.distance) return 1;
+      // if distance equal
+      if (a.member.character.attack > b.member.character.attack) return -1;
+      if (a.member.character.attack < b.member.character.attack) return 1;
+      return 0;
+    });
+
+    // calc the best move to target char
+    const bestMove = GameController.bestMove(distances[0].member,
+      distances[0].targetIndex, boardSize);
+    for (let i = 0; i < bestMove.length; i += 1) {
+      // if there`s no char at the end of path then move or try next best move
+      if ([...playerPositioned, ...this.enemyTeam.positioned]
+        .findIndex((character) => character.position === bestMove[i].stepIndex) < 0) {
+        distances[0].member.position = bestMove[i].stepIndex;
+        break;
+      }
+    }
+  }
+
+  static calcSteps(index, target, boardSize) {
+    // calc the difference between vertical and horizontal lines for target
+    const vertical = Math.abs(
+      Math.floor(index.position / boardSize) - Math.floor(target.position / boardSize),
+    );
+    const horizontal = Math.abs(
+      Math.floor(index.position % boardSize) - Math.floor(target.position % boardSize),
+    );
+    // calc count of steps to enter in attack radius
+    const vertSteps = Math.ceil(
+      (vertical - index.character.attackRadius) / index.character.stepRadius,
+    );
+    const horSteps = Math.ceil(
+      (horizontal - index.character.attackRadius) / index.character.stepRadius,
+    );
+    // considering diagonal
+    if (vertSteps < horSteps) {
+      return horSteps > 0 ? horSteps : 0;
+    }
+    return vertSteps > 0 ? vertSteps : 0;
+  }
+
+  static bestMove(index, target, boardSize) {
+    // calc which of possible steps will be closer to target
+    const bestStep = [];
+    index.stepRange.forEach((stepIndex) => {
+      const vertical = Math.abs(
+        Math.floor(stepIndex / boardSize) - Math.floor(target / boardSize),
+      );
+      const horizontal = Math.abs(
+        Math.floor(stepIndex % boardSize) - Math.floor(target % boardSize),
+      );
+      bestStep.push({ stepIndex, result: vertical + horizontal - index.character.attackRadius });
+    });
+    return bestStep.sort((a, b) => a.result - b.result);
   }
 }
