@@ -20,7 +20,7 @@ export default class GameController {
     // Отключение контекстного меню в браузере
     // document.addEventListener('contextmenu', (event) => event.preventDefault());
 
-    this.gamePlay.drawUi(themes.prairie);
+    this.gamePlay.drawUi(themes[0]);
 
     this.playerTeam = new Team(['swordsman', 'bowman']);
     // this.playerTeam.whoIsIt = 'player';
@@ -33,13 +33,16 @@ export default class GameController {
 
     this.gamePlay.redrawPositions([...this.playerTeam.positioned, ...this.enemyTeam.positioned]);
 
+    const scoreMax = this.state !== undefined ? this.state.scoreMax : 0;
     // player, level, score, scoreMax, playerTeam, enemyTeam
-    this.state = new GameState(true, 1, 0, 0,
+    this.state = new GameState(true, 1, 0, scoreMax,
       this.playerTeam.positioned, this.enemyTeam.positioned);
-
+    this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
     this.status = '';
     this.selectedMember = undefined;
     this.indexSelectedMember = undefined;
+
+    this.state.step = 0;
 
     this.addEventListener();
   }
@@ -62,6 +65,7 @@ export default class GameController {
     this.gamePlay.loadGameListeners = [];
 
     this.status = '';
+    this.state.step = 0;
 
     this.selectedMember = undefined;
     this.indexSelectedMember = undefined;
@@ -126,7 +130,7 @@ export default class GameController {
         this.status = '';
         break;
       case 'attack': // атака противника
-        console.log(`Атака !!! с ${this.indexSelectedMember} на ${index}`);
+        // console.log(`Атака !!! с ${this.indexSelectedMember} на ${index}`);
         this.status = 'attack';
         // this.state.toGo = false;
         this.getAttack(this.indexSelectedMember, index);
@@ -264,6 +268,9 @@ export default class GameController {
   }
 
   nextTurn(index) {
+    this.state.step += 1;
+    this.gamePlay.upSteps(`Steps: ${this.state.step}`);
+
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
     this.gamePlay.deselectCell(index);
@@ -276,25 +283,53 @@ export default class GameController {
       this.onNewGame();
     }
     if (this.enemyTeam.positioned.length === 0) {
-      GamePlay.showMessage('Вы победили!!');
-      this.nextLevel();
+      if (this.state.level === 4) {
+        GamePlay.showMessage('Победа!!! Игра пройдена');
+        this.nextGame();
+      } else {
+        GamePlay.showMessage('Победа!!! Уровень пройден');
+        this.nextLevel();
+      }
     }
     if (!this.state.toGo) {
       this.enemyAttack(index);
     }
   }
 
+  nextGame() {
+    this.playerTeam.positioned.forEach((element) => {
+      this.state.score += element.character.health;
+    });
+    if (this.state.score > this.state.scoreMax) {
+      this.state.scoreMax = this.state.score;
+    }
+    this.gamePlay.cellClickListeners = [];
+    this.gamePlay.cellEnterListeners = [];
+    this.gamePlay.cellLeaveListeners = [];
+    this.gamePlay.setCursor(cursors.auto);
+  }
+
   nextLevel() {
     this.state.level += 1;
-    this.gamePlay.level.textContent = `Level: ${this.state.level}`;
     this.playerTeam.levelUps();
+    this.state.step = 0;
 
     const count = this.state.level > 2 ? 2 : 1;
 
     this.playerTeam.addMembers(count, this.state.level - 1);
     this.playerTeam.positioned.forEach((element) => {
       this.playerTeam.members.push(element.character);
+      this.state.score += element.character.health;
     });
+    if (this.state.score > this.state.scoreMax) {
+      this.state.scoreMax = this.state.score;
+    }
+
+    this.gamePlay.drawUi(themes[this.state.level - 1]);
+    this.gamePlay.upLevel(`Level: ${this.state.level}`);
+    this.gamePlay.upScore(`Score: ${this.state.score}`);
+    this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
+
     this.playerTeam.startLine = plaerStartLine.slice();
     this.playerTeam.generateStartPosition(this.playerTeam.members.length);
 
@@ -310,7 +345,7 @@ export default class GameController {
 
   enemyAttack(index) {
     // находим персонаж которого атаковали
-    let memAttack = this.enemyTeam.positioned.find((member) => member.position === index);
+    const memAttack = this.enemyTeam.positioned.find((member) => member.position === index);
     if (memAttack !== undefined) { // если нашелся, то атакуем им в первую очередь
       this.selectedMember = memAttack;
       this.indexSelectedMember = index;
@@ -319,24 +354,25 @@ export default class GameController {
         // this.state.toGo = true;
         this.getAttack(this.indexSelectedMember, indexAttack);
       }
-    } else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
-      memAttack = this.attackRange();
-      if (memAttack.member) {
-        this.selectedMember = memAttack.member;
-        this.indexSelectedMember = memAttack.index;
-        // this.state.toGo = true;
-        this.getAttack(this.indexSelectedMember, memAttack.indexAttack);
-      } else { // ищем у какого персонажа есть в диапазоне шага персонаж игрока
-        const memStep = this.stepRange();
-        if (memStep.index >= 0) {
-          this.selectedMember = this.enemyTeam.positioned[memStep.index];
-          this.moveEnemy(this.findPos());
-          // this.state.toGo = true;
-        } else {
-          console.log('Нужнo искать противника');
-        }
-      }
     }
+    // else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
+    //   memAttack = this.attackRange();
+    //   if (memAttack.member) {
+    //     this.selectedMember = memAttack.member;
+    //     this.indexSelectedMember = memAttack.index;
+    //     // this.state.toGo = true;
+    //     this.getAttack(this.indexSelectedMember, memAttack.indexAttack);
+    //   } else { // ищем у какого персонажа есть в диапазоне шага персонаж игрока
+    //     const memStep = this.stepRange();
+    //     if (memStep.index >= 0) {
+    //       this.selectedMember = this.enemyTeam.positioned[memStep.index];
+    //       this.moveEnemy(this.findPos());
+    //       // this.state.toGo = true;
+    //     } else {
+    //       console.log('Нужнo искать противника');
+    //     }
+    //   }
+    // }
   }
 
   // Поиск среди всех персонажей противника у которых в диапазоне шага есть персонажи игрока

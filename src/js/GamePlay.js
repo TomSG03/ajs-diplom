@@ -39,6 +39,7 @@ export default class GamePlay {
         <span data-id="level" class="btn">Level: 1</span>
         <span data-id="score" class="btn">Score: 0</span>
         <span data-id="scorteMax" class="btn">Best score: 0</span>
+        <span data-id="Steps" class="btn">Steps: 0</span>
       </div>
       <div class="board-container">
         <div data-id="board" class="board"></div>
@@ -52,6 +53,7 @@ export default class GamePlay {
     this.level = this.container.querySelector('[data-id=level]');
     this.score = this.container.querySelector('[data-id=score]');
     this.scoreMax = this.container.querySelector('[data-id=scorteMax]');
+    this.steps = this.container.querySelector('[data-id=Steps]');
 
     this.newGameEl.addEventListener('click', (event) => this.onNewGameClick(event));
     this.saveGameEl.addEventListener('click', (event) => this.onSaveGameClick(event));
@@ -192,6 +194,22 @@ export default class GamePlay {
 
   static showMessage(message) {
     alert(message);
+  }
+
+  upLevel(message) {
+    this.level.textContent = message;
+  }
+
+  upSteps(message) {
+    this.steps.textContent = message;
+  }
+
+  upScore(message) {
+    this.score.textContent = message;
+  }
+
+  upScoreMax(message) {
+    this.scoreMax.textContent = message;
   }
 
   selectCell(index, color = 'yellow') {
