@@ -147,6 +147,7 @@ export default class GameController {
   }
 
   onCellEnter(index) {
+    this.gamePlay.showCellTooltip(`${index} : ${Math.trunc(index / 8)} : ${index % 8}`, index);
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     const findMember = allPositon.find((member) => member.position === index);
 
@@ -280,7 +281,7 @@ export default class GameController {
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
     this.gamePlay.deselectCell(index);
-    this.gamePlay.deselectCell(this.indexSelectedMember);
+    //this.gamePlay.deselectCell(this.indexSelectedMember);
     this.selectedMember = undefined;
     this.indexSelectedMember = undefined;
 
@@ -291,9 +292,11 @@ export default class GameController {
     if (this.enemyTeam.positioned.length === 0) {
       if (this.state.level === 4) {
         GamePlay.showMessage('Победа!!! Игра пройдена');
+        this.state.toGo = true;
         this.nextGame();
       } else {
         GamePlay.showMessage('Победа!!! Уровень пройден');
+        this.state.toGo = true;
         this.nextLevel();
       }
     }
@@ -369,8 +372,9 @@ export default class GameController {
         this.selectedMember = attackRange.member;
         this.indexSelectedMember = attackRange.index;
         this.getAttack(this.indexSelectedMember, attackRange.indexAttack);
-      } else { // если не кого атаковать делаем шаг
-        this.step(this.playerTeam.positioned);
+      } else { // если не кого атаковать делаем передвижение
+        this.move(this.playerTeam.positioned);
+        this.state.toGo = true;
         this.nextTurn();
       }
     }
@@ -401,7 +405,7 @@ export default class GameController {
     return undefined;
   }
 
-  step(playerPositioned) {
+  move(playerPositioned) {
     const boardSize = 8;
     const distances = [];
 
