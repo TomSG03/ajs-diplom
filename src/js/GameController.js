@@ -11,9 +11,6 @@ export default class GameController {
   }
 
   init() {
-    // TODO: add event listeners to gamePlay events
-    // TODO: load saved stated from stateService
-
     // Отключение контекстного меню в браузере
     // document.addEventListener('contextmenu', (event) => event.preventDefault());
 
@@ -37,7 +34,6 @@ export default class GameController {
     this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
     this.status = '';
     this.selectedMember = undefined;
-    this.indexSelectedMember = undefined;
 
     this.state.step = 0;
 
@@ -63,7 +59,6 @@ export default class GameController {
     this.state.step = 0;
 
     this.selectedMember = undefined;
-    this.indexSelectedMember = undefined;
 
     delete this.playerTeam;
     delete this.enemyTeam;
@@ -100,20 +95,15 @@ export default class GameController {
   onCellClick(index) {
     switch (this.status) {
       case 'select': // выбор персонажа
-        if (this.indexSelectedMember !== undefined) {
-          this.gamePlay.deselectCell(this.indexSelectedMember);
-        }
-        this.gamePlay.selectCell(index);
-        this.indexSelectedMember = index;
         this.selectedMember = this.playerTeam.positioned.find(
           (member) => member.position === index,
         );
+        this.gamePlay.selectCell(this.selectedMember.position);
         this.status = '';
         break;
       case 'move': // перемещение персонажа
+        this.gamePlay.deselectCell(this.selectedMember.position);
         this.selectedMember.position = index;
-        this.gamePlay.deselectCell(this.indexSelectedMember);
-        this.gamePlay.deselectCell(index);
         this.gamePlay.redrawPositions([...this.playerTeam.positioned,
           ...this.enemyTeam.positioned]);
         this.selectedMember = undefined;
@@ -135,10 +125,8 @@ export default class GameController {
         this.status = '';
         break;
       case 'attack': // атака противника
-        // console.log(`Атака !!! с ${this.indexSelectedMember} на ${index}`);
         this.status = 'attack';
-        // this.state.toGo = false;
-        this.getAttack(this.indexSelectedMember, index);
+        this.getAttack(this.selectedMember.position, index);
         break;
 
       default:
@@ -147,7 +135,7 @@ export default class GameController {
   }
 
   onCellEnter(index) {
-    this.gamePlay.showCellTooltip(`${index} : ${Math.trunc(index / 8)} : ${index % 8}`, index);
+    // this.gamePlay.showCellTooltip(`${index} : ${Math.trunc(index / 8)} : ${index % 8}`, index);
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     const findMember = allPositon.find((member) => member.position === index);
 
@@ -155,7 +143,6 @@ export default class GameController {
       const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${(findMember.character.health).toFixed()}`;
       this.gamePlay.showCellTooltip(message, index);
     }
-    // this.gamePlay.showCellTooltip(index, index);
     if (this.selectedMember !== undefined) {
       const cellAction = this.getCellAction(index);
       if (this.status !== '') {
@@ -237,7 +224,10 @@ export default class GameController {
   onCellLeave(index) {
     this.gamePlay.hideCellTooltip(index);
     this.gamePlay.setCursor(cursors.auto);
-    if (this.indexSelectedMember !== index) {
+
+    if (this.selectedMember === undefined) {
+      this.gamePlay.deselectCell(index);
+    } else if (this.selectedMember.position !== index) {
       this.gamePlay.deselectCell(index);
     }
     this.status = '';
@@ -256,8 +246,7 @@ export default class GameController {
       const damage = Math.max(hanter.character.attack - death.character.defence,
         hanter.character.attack * 0.1);
 
-      const promise = this.gamePlay.showDamage(attackIndex, damage);
-
+      const promise = this.gamePlay.showDamage(attackIndex, damage.toFixed());
       promise.then(() => {
         death.character.health -= damage;
 
@@ -267,6 +256,8 @@ export default class GameController {
           } else {
             this.playerTeam.positioned.splice(this.playerTeam.positioned.indexOf(death), 1);
           }
+          this.selectedMember = undefined;
+          this.status = '';
         }
         this.state.toGo = !this.state.toGo;
         resolve();
@@ -275,18 +266,13 @@ export default class GameController {
   }
 
   nextTurn(index = 0) {
-    this.state.step += 1;
-    this.gamePlay.upSteps(`Steps: ${this.state.step}`);
-
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
     this.gamePlay.deselectCell(index);
-    //this.gamePlay.deselectCell(this.indexSelectedMember);
     this.selectedMember = undefined;
-    this.indexSelectedMember = undefined;
 
     if (this.playerTeam.positioned.length === 0) {
-      GamePlay.showMessage('Вы проиграли!!');
+      GamePlay.showMessage('Поражение!!!');
       this.disableBoard();
     }
     if (this.enemyTeam.positioned.length === 0) {
@@ -361,17 +347,15 @@ export default class GameController {
     const memAttack = this.enemyTeam.positioned.find((member) => member.position === index);
     if (memAttack !== undefined) { // если нашелся, то атакуем им в первую очередь
       this.selectedMember = memAttack;
-      this.indexSelectedMember = index;
       const indexAttack = this.findPlayerTeam();
       if (indexAttack !== undefined) {
-        this.getAttack(this.indexSelectedMember, indexAttack);
+        this.getAttack(index, indexAttack);
       }
     } else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
       const attackRange = this.attackRange();
       if (attackRange.member !== undefined) { // если нашелся, то атакуем
         this.selectedMember = attackRange.member;
-        this.indexSelectedMember = attackRange.index;
-        this.getAttack(this.indexSelectedMember, attackRange.indexAttack);
+        this.getAttack(attackRange.index, attackRange.indexAttack);
       } else { // если не кого атаковать делаем передвижение
         this.move(this.playerTeam.positioned);
         this.state.toGo = true;
@@ -466,7 +450,7 @@ export default class GameController {
   }
 
   static bestMove(index, target, boardSize) {
-    // calc which of possible steps will be closer to target
+    // количество шагов до цели
     const bestStep = [];
     index.stepRange.forEach((stepIndex) => {
       const vertical = Math.abs(
