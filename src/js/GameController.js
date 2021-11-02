@@ -143,7 +143,7 @@ export default class GameController {
     const findMember = allPositon.find((member) => member.position === index);
 
     if (findMember !== undefined) {
-      const message = `🎖${findMember.character.level} ⚔${findMember.character.attack} 🛡${findMember.character.defence} ❤${(findMember.character.health).toFixed()}`;
+      const message = `\u{1F396}${findMember.character.level} \u{2694}${findMember.character.attack} \u{1F6E1}${findMember.character.defence} \u{2764}${(findMember.character.health).toFixed()}`;
       this.gamePlay.showCellTooltip(message, index);
     }
     if (this.selectedMember !== undefined) {
