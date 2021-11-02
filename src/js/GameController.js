@@ -95,6 +95,9 @@ export default class GameController {
   onCellClick(index) {
     switch (this.status) {
       case 'select': // выбор персонажа
+        if (this.selectedMember !== undefined) {
+          this.gamePlay.deselectCell(this.selectedMember.position);
+        }
         this.selectedMember = this.playerTeam.positioned.find(
           (member) => member.position === index,
         );
@@ -174,7 +177,8 @@ export default class GameController {
   getCellAction(index) {
     if (this.checkPlayer(index)) {
       this.status = 'select';
-      return { cursor: cursors.auto, color: 'yellow' };
+      // return { cursor: cursors.auto, color: 'yellow' };
+      return { cursor: cursors.pointer };
     }
     if (this.selectedMember.stepRange.includes(index) && !this.checkEnemy(index)) {
       this.status = 'move';
