@@ -107,9 +107,6 @@ export default class GameController {
       case 'move': // перемещение персонажа
         this.gamePlay.deselectCell(this.selectedMember.position);
         this.selectedMember.position = index;
-        this.gamePlay.redrawPositions([...this.playerTeam.positioned,
-          ...this.enemyTeam.positioned]);
-        this.selectedMember = undefined;
         this.status = '';
         this.state.toGo = false;
         this.onCellEnter(index);
@@ -177,7 +174,6 @@ export default class GameController {
   getCellAction(index) {
     if (this.checkPlayer(index)) {
       this.status = 'select';
-      // return { cursor: cursors.auto, color: 'yellow' };
       return { cursor: cursors.pointer };
     }
     if (this.selectedMember.stepRange.includes(index) && !this.checkEnemy(index)) {
@@ -239,7 +235,7 @@ export default class GameController {
 
   getAttack(indexMember, indexAttack) {
     const promise = this.attack(indexMember, indexAttack);
-    promise.then(() => this.nextTurn(indexAttack));
+    promise.then(() => this.nextTurn());
   }
 
   attack(index, attackIndex) {
@@ -252,8 +248,9 @@ export default class GameController {
 
       const promise = this.gamePlay.showDamage(attackIndex, damage.toFixed());
       promise.then(() => {
+        this.gamePlay.deselectCell(attackIndex);
+        this.gamePlay.deselectCell(index);
         death.character.health -= damage;
-
         if (death.character.health <= 0) {
           if (this.enemyTeam.positioned.includes(death)) {
             this.enemyTeam.positioned.splice(this.enemyTeam.positioned.indexOf(death), 1);
@@ -269,10 +266,13 @@ export default class GameController {
     });
   }
 
-  nextTurn(index = 0) {
+  nextTurn() {
+    if (this.selectedMember !== undefined) {
+      this.gamePlay.deselectCell(this.selectedMember.position);
+    }
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
-    this.gamePlay.deselectCell(index);
+
     this.selectedMember = undefined;
 
     if (this.playerTeam.positioned.length === 0) {
@@ -291,17 +291,12 @@ export default class GameController {
       }
     }
     if (!this.state.toGo) {
-      this.enemyAttack(index);
+      this.enemyAttack();
     }
   }
 
   nextGame() {
-    this.playerTeam.positioned.forEach((element) => {
-      this.state.score += element.character.health;
-    });
-    if (this.state.score > this.state.scoreMax) {
-      this.state.scoreMax = this.state.score;
-    }
+    this.upInfo();
     this.disableBoard();
   }
 
@@ -320,18 +315,9 @@ export default class GameController {
     const count = this.state.level > 2 ? 2 : 1;
 
     this.playerTeam.addMembers(count, this.state.level - 1);
-    this.playerTeam.positioned.forEach((element) => {
-      this.playerTeam.members.push(element.character);
-      this.state.score += element.character.health;
-    });
-    if (this.state.score > this.state.scoreMax) {
-      this.state.scoreMax = this.state.score;
-    }
 
     this.gamePlay.drawUi(themes[this.state.level - 1]);
-    this.gamePlay.upLevel(`Level: ${this.state.level}`);
-    this.gamePlay.upScore(`Score: ${this.state.score}`);
-    this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
+    this.upInfo();
 
     this.playerTeam.startLine = plaerStartLine.slice();
     this.playerTeam.generateStartPosition(this.playerTeam.members.length);
@@ -346,25 +332,31 @@ export default class GameController {
       ...this.enemyTeam.positioned]);
   }
 
-  enemyAttack(index) {
-    // находим персонаж которого атаковали
-    const memAttack = this.enemyTeam.positioned.find((member) => member.position === index);
-    if (memAttack !== undefined) { // если нашелся, то атакуем им в первую очередь
-      this.selectedMember = memAttack;
-      const indexAttack = this.findPlayerTeam();
-      if (indexAttack !== undefined) {
-        this.getAttack(index, indexAttack);
-      }
-    } else { // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
-      const attackRange = this.attackRange();
-      if (attackRange.member !== undefined) { // если нашелся, то атакуем
-        this.selectedMember = attackRange.member;
-        this.getAttack(attackRange.index, attackRange.indexAttack);
-      } else { // если не кого атаковать делаем передвижение
-        this.move(this.playerTeam.positioned);
-        this.state.toGo = true;
-        this.nextTurn();
-      }
+  upInfo() {
+    this.playerTeam.positioned.forEach((element) => {
+      this.playerTeam.members.push(element.character);
+      this.state.score += element.character.health;
+    });
+    if (this.state.score > this.state.scoreMax) {
+      this.state.scoreMax = this.state.score;
+    }
+    this.gamePlay.upLevel(`Level: ${this.state.level}`);
+    this.gamePlay.upScore(`Score: ${this.state.score}`);
+    this.gamePlay.upScoreMax(`Best score: ${this.state.scoreMax}`);
+  }
+
+  enemyAttack() {
+    // ищем у какого персонажа есть в диапазоне атаки персонаж игрока
+    const attackRange = this.attackRange();
+    if (attackRange.member !== undefined) { // если нашелся, то атакуем
+      this.selectedMember = attackRange.member;
+      this.gamePlay.selectCell(attackRange.index);
+      this.gamePlay.selectCell(attackRange.indexAttack, 'red');
+      this.getAttack(attackRange.index, attackRange.indexAttack);
+    } else { // если не кого атаковать делаем передвижение
+      this.move(this.playerTeam.positioned);
+      this.state.toGo = true;
+      this.nextTurn();
     }
   }
 
@@ -381,16 +373,6 @@ export default class GameController {
       }
     }
     return {};
-  }
-
-  // Поиск возле атакованного
-  findPlayerTeam() {
-    for (let i = 0; i < this.playerTeam.positioned.length; i += 1) {
-      if (this.selectedMember.attackRange.includes(this.playerTeam.positioned[i].position)) {
-        return this.playerTeam.positioned[i].position;
-      }
-    }
-    return undefined;
   }
 
   move(playerPositioned) {
