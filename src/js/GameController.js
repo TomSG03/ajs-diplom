@@ -17,7 +17,6 @@ export default class GameController {
     this.gamePlay.drawUi(themes[0]);
 
     this.playerTeam = new Team(['swordsman', 'bowman']);
-    // this.playerTeam.whoIsIt = 'player';
     this.playerTeam.startLine = plaerStartLine.slice();
     this.playerTeam.init();
 
@@ -267,9 +266,6 @@ export default class GameController {
   }
 
   nextTurn() {
-    if (this.selectedMember !== undefined) {
-      this.gamePlay.deselectCell(this.selectedMember.position);
-    }
     const allPositon = [...this.playerTeam.positioned, ...this.enemyTeam.positioned];
     this.gamePlay.redrawPositions(allPositon);
 
@@ -281,12 +277,12 @@ export default class GameController {
     }
     if (this.enemyTeam.positioned.length === 0) {
       if (this.state.level === 4) {
-        GamePlay.showMessage('Победа!!! Игра пройдена');
         this.state.toGo = true;
         this.nextGame();
+        GamePlay.showMessage('Победа!!! Игра пройдена');
       } else {
-        GamePlay.showMessage('Победа!!! Уровень пройден');
         this.state.toGo = true;
+        GamePlay.showMessage('Победа!!! Уровень пройден');
         this.nextLevel();
       }
     }
@@ -310,7 +306,6 @@ export default class GameController {
   nextLevel() {
     this.state.level += 1;
     this.playerTeam.levelUps();
-    this.state.step = 0;
 
     const count = this.state.level > 2 ? 2 : 1;
 
