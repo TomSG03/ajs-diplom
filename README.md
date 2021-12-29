@@ -1,3 +1,5 @@
+## [Gh-Pages](https://tomsg03.github.io/ajs-diplom/)
+
 # Дипломное задание к курсу «Продвинутый JavaScript». Retro Game
 
 ###### tags: `netology` `advanced js`
